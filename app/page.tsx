@@ -3,15 +3,19 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import HomeContent from "./components/HomeContent";
+import ProjectsContent from "./components/ProjectsContent";
+import BlogContent from "./components/BlogContent";
+import ContactContent from "./components/ContactContent";
 
 const sections = [
-  { id: "home", name: "Home", path: "/" },
-  { id: "projects", name: "Projects", path: "/projects" },
-  { id: "blog", name: "Blog", path: "/blog" },
-  { id: "contact", name: "Contact", path: "/contact" },
+  { id: "home", name: "Home", path: "/", component: HomeContent },
+  { id: "projects", name: "Projects", path: "/projects", component: ProjectsContent },
+  { id: "blog", name: "Blog", path: "/blog", component: BlogContent },
+  { id: "contact", name: "Contact", path: "/contact", component: ContactContent },
 ];
 
-export default function HomePage() {
+export default function MainPage() {
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const [allGlow, setAllGlow] = useState(false);
@@ -215,7 +219,7 @@ export default function HomePage() {
             id={section.id}
             className={`section ${index === currentIndex ? "active" : ""}`}
           >
-            <h1>{section.name}</h1>
+            <section.component isLoading={isLoading} />
           </section>
         ))}
       </div>
