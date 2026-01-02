@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import projectsData from "@/data/json/projects.json";
 
 interface Project {
     id: number;
@@ -11,65 +12,13 @@ interface Project {
     technologies: string[];
     suit: "diamond" | "spade" | "heart" | "club";
     value: string;
+    image: string;
+    customIcon?: string | null;
+    link?: string;
 }
 
-const suits = {
-    diamond: { icon: "/red_diamond.svg", color: "#FE2336" },
-    spade: { icon: "/black_spade.svg", color: "#1a1a1a" },
-    heart: { icon: "/red_heart.svg", color: "#FD2636" },
-    club: { icon: "/black_club.svg", color: "#1a1a1a" },
-};
-
-const projects: Project[] = [
-    { 
-        id: 1, name: "Nexus AI", description: "Machine learning platform for enterprise", 
-        fullDescription: "A comprehensive machine learning platform designed for enterprise-scale operations. Features automated model training, deployment pipelines, and real-time inference capabilities. Built with scalability and security in mind.",
-        technologies: ["Python", "TensorFlow", "Kubernetes", "AWS"],
-        suit: "diamond", value: "A" 
-    },
-    { 
-        id: 2, name: "CloudSync", description: "Real-time data synchronization", 
-        fullDescription: "Real-time data synchronization service that keeps your data consistent across multiple platforms and devices. Supports conflict resolution, offline mode, and end-to-end encryption.",
-        technologies: ["Node.js", "WebSocket", "Redis", "PostgreSQL"],
-        suit: "spade", value: "K" 
-    },
-    { 
-        id: 3, name: "Pulse", description: "Health monitoring dashboard", 
-        fullDescription: "A modern health monitoring dashboard for tracking vital signs, fitness metrics, and wellness trends. Integrates with popular wearables and provides actionable health insights.",
-        technologies: ["React", "D3.js", "GraphQL", "MongoDB"],
-        suit: "heart", value: "Q" 
-    },
-    { 
-        id: 4, name: "Forge", description: "Developer tools suite", 
-        fullDescription: "An integrated suite of developer tools including code generators, testing frameworks, and deployment automation. Designed to streamline the development workflow from start to finish.",
-        technologies: ["TypeScript", "Rust", "Docker", "GitHub Actions"],
-        suit: "club", value: "J" 
-    },
-    { 
-        id: 5, name: "Swift UI", description: "Component design system", 
-        fullDescription: "A comprehensive component design system with over 100 customizable UI components. Features dark mode support, accessibility compliance, and seamless theming capabilities.",
-        technologies: ["React", "Storybook", "Tailwind CSS", "Figma"],
-        suit: "diamond", value: "10" 
-    },
-    { 
-        id: 6, name: "Velocity", description: "Performance optimization", 
-        fullDescription: "Performance optimization toolkit that analyzes and improves application speed. Includes bundle analysis, lazy loading optimization, and automated performance regression testing.",
-        technologies: ["Webpack", "Lighthouse", "Node.js", "Chrome DevTools"],
-        suit: "spade", value: "9" 
-    },
-    { 
-        id: 7, name: "Echo", description: "Voice AI assistant", 
-        fullDescription: "An intelligent voice AI assistant with natural language understanding and context-aware responses. Supports multiple languages and can be customized for specific domains.",
-        technologies: ["Python", "OpenAI", "FastAPI", "WebRTC"],
-        suit: "heart", value: "8" 
-    },
-    { 
-        id: 8, name: "Atlas", description: "Mapping SDK platform", 
-        fullDescription: "A powerful mapping SDK platform for building location-aware applications. Features custom map styling, real-time traffic data, and advanced geocoding capabilities.",
-        technologies: ["MapLibre", "React Native", "Go", "PostGIS"],
-        suit: "club", value: "7" 
-    },
-];
+const suits = projectsData.suits as Record<string, { icon: string; color: string }>;
+const projects = projectsData.projects as Project[];
 
 interface CardPosition {
     x: number;
@@ -92,24 +41,29 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
     const [isAnimating, setIsAnimating] = useState(false);
     const [visibleCards, setVisibleCards] = useState<number[]>([]);
     const [cardsAnimated, setCardsAnimated] = useState(false);
+    const [currentPage, setCurrentPage] = useState(0);
     const prevIsActive = useRef(false);
     const cardRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
-    // Trigger card loading animation when section becomes active
+    const cardsPerPage = 8;
+    const totalPages = Math.ceil(projects.length / cardsPerPage);
+    const currentPageProjects = projects.slice(currentPage * cardsPerPage, (currentPage + 1) * cardsPerPage);
+
+    // Trigger card loading animation when section becomes active or page changes
     useEffect(() => {
         // Detect when isActive changes from false to true
         if (!isLoading && isActive && !prevIsActive.current) {
             prevIsActive.current = true;
             
             // Stagger each card's appearance with individual timeouts
-            projects.forEach((project, index) => {
+            currentPageProjects.forEach((project, index) => {
                 setTimeout(() => {
                     setVisibleCards(prev => [...prev, project.id]);
                 }, 100 + index * 120); // 100ms initial delay + 120ms per card
             });
             
             // Mark animations complete after all cards have animated
-            setTimeout(() => setCardsAnimated(true), 100 + projects.length * 120 + 500);
+            setTimeout(() => setCardsAnimated(true), 100 + currentPageProjects.length * 120 + 500);
         }
         
         // Reset when section becomes inactive
@@ -119,6 +73,23 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
             setCardsAnimated(false);
         }
     }, [isLoading, isActive]);
+
+    // Animate cards when page changes
+    useEffect(() => {
+        if (isActive && prevIsActive.current) {
+            setVisibleCards([]);
+            setCardsAnimated(false);
+            
+            // Stagger each card's appearance with individual timeouts
+            currentPageProjects.forEach((project, index) => {
+                setTimeout(() => {
+                    setVisibleCards(prev => [...prev, project.id]);
+                }, 50 + index * 80); // Faster animation for page changes
+            });
+            
+            setTimeout(() => setCardsAnimated(true), 50 + currentPageProjects.length * 80 + 300);
+        }
+    }, [currentPage]);
 
     const openModal = (projectId: number) => {
         const cardEl = cardRefs.current[projectId];
@@ -182,9 +153,10 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [selectedId, isFlipped]);
 
-    // Calculate center position
-    const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 - 170 : 0;
-    const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 - 250 : 0;
+    // Calculate center position for modal - center the card+image combination
+    // Card: 450px, Gap: 30px, Image: 700px = 1180px total. Offset = 1180/2 = 590
+    const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 - 590 : 0;
+    const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 - 325 : 0;
 
     return (
         <div
@@ -235,19 +207,14 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                     maxWidth: "800px",
                     marginBottom: "1.5rem"
                 }}>
-                    <h1 style={{
-                        fontSize: "2rem",
-                        fontWeight: 300,
-                        color: "var(--foreground)",
-                        margin: 0,
-                        letterSpacing: "-0.02em"
-                    }}>
-                        Projects
-                    </h1>
                     <p style={{
-                        fontSize: "0.85rem",
-                        color: "#666",
-                        margin: "0.25rem 0 0 0"
+                        fontSize: "0.65rem",
+                        fontWeight: 400,
+                        color: "#4a4a4a",
+                        letterSpacing: "0.25em",
+                        textTransform: "uppercase",
+                        margin: 0,
+                        fontFamily: "system-ui, -apple-system, sans-serif"
                     }}>
                         A hand of my finest work
                     </p>
@@ -261,7 +228,7 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                     gap: "1.25rem",
                     maxWidth: "1000px"
                 }}>
-                {projects.map((project, index) => {
+                {currentPageProjects.map((project, index) => {
                     const suit = suits[project.suit];
                     const isRed = project.suit === "diamond" || project.suit === "heart";
                     const isHovered = hoveredId === project.id;
@@ -336,8 +303,8 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                                 padding: "1.5rem 0.5rem"
                             }}>
                                 <Image
-                                    src={suit.icon}
-                                    alt={project.suit}
+                                    src={project.customIcon || suit.icon}
+                                    alt={project.name}
                                     width={48}
                                     height={48}
                                     style={{
@@ -395,6 +362,103 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                     );
                 })}
                 </div>
+
+                {/* Pagination Arrows */}
+                {totalPages > 1 && (
+                    <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "1.5rem",
+                        marginTop: "2rem"
+                    }}>
+                        {/* Left Arrow */}
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                            disabled={currentPage === 0}
+                            style={{
+                                width: "48px",
+                                height: "48px",
+                                borderRadius: "50%",
+                                background: currentPage === 0 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.1)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                color: currentPage === 0 ? "#444" : "#fff",
+                                fontSize: "1.2rem",
+                                cursor: currentPage === 0 ? "not-allowed" : "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={(e) => {
+                                if (currentPage !== 0) {
+                                    e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+                                    e.currentTarget.style.transform = "scale(1.05)";
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = currentPage === 0 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.1)";
+                                e.currentTarget.style.transform = "scale(1)";
+                            }}
+                        >
+                            ←
+                        </button>
+
+                        {/* Page Indicator */}
+                        <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem"
+                        }}>
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    onClick={() => setCurrentPage(i)}
+                                    style={{
+                                        width: i === currentPage ? "24px" : "8px",
+                                        height: "8px",
+                                        borderRadius: "4px",
+                                        background: i === currentPage ? "#dc143c" : "rgba(255,255,255,0.2)",
+                                        cursor: "pointer",
+                                        transition: "all 0.3s ease"
+                                    }}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Right Arrow */}
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                            disabled={currentPage === totalPages - 1}
+                            style={{
+                                width: "48px",
+                                height: "48px",
+                                borderRadius: "50%",
+                                background: currentPage === totalPages - 1 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.1)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                color: currentPage === totalPages - 1 ? "#444" : "#fff",
+                                fontSize: "1.2rem",
+                                cursor: currentPage === totalPages - 1 ? "not-allowed" : "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={(e) => {
+                                if (currentPage !== totalPages - 1) {
+                                    e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+                                    e.currentTarget.style.transform = "scale(1.05)";
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = currentPage === totalPages - 1 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.1)";
+                                e.currentTarget.style.transform = "scale(1)";
+                            }}
+                        >
+                            →
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Animated Card Modal */}
@@ -404,13 +468,14 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                 const isRed = project.suit === "diamond" || project.suit === "heart";
                 
                 return (
+                <>
                     <div
                         style={{
                             position: "fixed",
                             left: showBackdrop ? centerX : cardRect.x,
                             top: showBackdrop ? centerY : cardRect.y,
-                            width: showBackdrop ? 340 : 180,
-                            height: showBackdrop ? 500 : 260,
+                            width: showBackdrop ? 450 : 180,
+                            height: showBackdrop ? 650 : 260,
                             zIndex: 1000,
                             perspective: "1500px",
                             transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1), top 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -480,8 +545,8 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                                     padding: "1.5rem 0.5rem"
                                 }}>
                                     <Image
-                                        src={suit.icon}
-                                        alt={project.suit}
+                                        src={project.customIcon || suit.icon}
+                                        alt={project.name}
                                         width={48}
                                         height={48}
                                     />
@@ -561,8 +626,8 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                                     flexShrink: 0
                                 }}>
                                     <Image
-                                        src={suit.icon}
-                                        alt={project.suit}
+                                        src={project.customIcon || suit.icon}
+                                        alt={project.name}
                                         width={40}
                                         height={40}
                                     />
@@ -671,37 +736,6 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                                             ))}
                                         </div>
                                     </div>
-
-                                    {/* Card Value Badge */}
-                                    <div style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "0.5rem",
-                                        padding: "1rem",
-                                        background: "rgba(0,0,0,0.03)",
-                                        borderRadius: "8px"
-                                    }}>
-                                        <span style={{
-                                            fontSize: "1.5rem",
-                                            fontWeight: 700,
-                                            color: isRed ? suit.color : "#1a1a1a"
-                                        }}>
-                                            {project.value}
-                                        </span>
-                                        <Image
-                                            src={suit.icon}
-                                            alt={project.suit}
-                                            width={24}
-                                            height={24}
-                                        />
-                                        <span style={{
-                                            fontSize: "0.85rem",
-                                            color: "#666",
-                                            marginLeft: "auto"
-                                        }}>
-                                            {project.suit.charAt(0).toUpperCase() + project.suit.slice(1)} Suit
-                                        </span>
-                                    </div>
                                 </div>
 
                                 {/* Footer */}
@@ -710,7 +744,9 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                                     borderTop: "1px solid rgba(0,0,0,0.1)",
                                     flexShrink: 0
                                 }}>
-                                    <button style={{
+                                    <button 
+                                        onClick={() => project.link && window.open(project.link, "_blank")}
+                                        style={{
                                         width: "100%",
                                         padding: "0.9rem",
                                         background: isRed ? suit.color : "#1a1a1a",
@@ -737,6 +773,39 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                             </div>
                         </div>
                     </div>
+                    
+                    {/* Image Panel - appears on the right after flip */}
+                    <div
+                        style={{
+                            position: "fixed",
+                            left: centerX + 450 + 30,
+                            top: centerY,
+                            width: 700,
+                            height: 650,
+                            zIndex: 999,
+                            opacity: isFlipped ? 1 : 0,
+                            transform: isFlipped ? "translateX(0)" : "translateX(-20px)",
+                            transition: "opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s",
+                            pointerEvents: isFlipped ? "auto" : "none",
+                            borderRadius: "16px",
+                            overflow: "hidden",
+                            boxShadow: "0 30px 80px rgba(0,0,0,0.4)"
+                        }}
+                    >
+                        <Image
+                            src={project.image}
+                            alt={project.name}
+                            width={700}
+                            height={650}
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                objectPosition: "center center"
+                            }}
+                        />
+                    </div>
+                </>
                 );
             })()}
         </div>

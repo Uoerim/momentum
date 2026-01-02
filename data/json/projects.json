@@ -1,0 +1,35 @@
+{
+  "suits": {
+    "diamond": { "icon": "/red_diamond.svg", "color": "#FE2336" },
+    "spade": { "icon": "/black_spade.svg", "color": "#1a1a1a" },
+    "heart": { "icon": "/red_heart.svg", "color": "#FD2636" },
+    "club": { "icon": "/black_club.svg", "color": "#1a1a1a" }
+  },
+  "projects": [
+    {
+      "id": 1,
+      "name": "Lofi Player",
+      "description": "A Calm Lofi Music Player",
+      "fullDescription": "Lofi Hip-hop Player is a minimalist music player designed to enhance focus and productivity during studying, coding, or creative work. It provides a calm, distraction-free listening experience centered around smooth lofi hip-hop tracks that help users stay relaxed while maintaining concentration.",
+      "technologies": ["HTML", "CSS", "JS", "Youtube embed API"],
+      "suit": "diamond",
+      "value": "A",
+      "image": "/projects/lofi/poster2.png",
+      "customIcon": "projects/lofi/logo.svg",
+      "link": "https://uoerim.github.io/lofi-player/"
+    },
+    {
+      "id": 2,
+      "name": "Keylock",
+      "description": "Embedded C++ code for a door lock",
+      "fullDescription": "Keylock is an embedded door-lock system developed in Embedded C/C++ on the Tiva-C (TM4C123GH6PM) microcontroller. The project implements a secure, real-time access control mechanism using low-level register manipulation and layered embedded design principles.",
+      "technologies": ["C++", "TM4C123GH6PM"],
+      "suit": "spade",
+      "value": "K",
+      "image": "/projects/keysystem/poster.png",
+      "customIcon": "projects/keysystem/logo.svg",
+      "link": "https://github.com/Uoerim/Embedded-Keysystem"
+    }
+
+  ]
+}

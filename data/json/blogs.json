@@ -1,0 +1,50 @@
+{
+    "blogs": [
+        {
+            "id": 1,
+            "title": "Welcome to my portfolio",
+            "slug": "welcome-to-my-portfolio",
+            "excerpt": "Exploring the intentional design and growth of my portfolio as a computer engineer.",
+            "author": "Yosuf",
+            "date": "2026-01-02",
+            "readTime": "5 min read",
+            "tags": [
+                "portfolio",
+                "welcome"
+            ],
+            "content": [
+                {
+                    "type": "paragraph",
+                    "text": "This website is more than a place to display projects. It’s a living space where I document how I think, how I build, and how I grow as a computer engineer. I wanted this portfolio to feel intentional and focused, not crowded or noisy, so everything here is designed to highlight ideas, systems, and real work rather than visual distractions."
+                },
+                {
+                    "type": "image",
+                    "src": "/posts/firstpost/knight_black.jpg",
+                    "alt": "",
+                    "caption": "",
+                    "layout": "left"
+                },
+                {
+                    "type": "paragraph",
+                    "text": "The dark theme isn’t an aesthetic choice alone. It represents focus.\n\nEngineering happens in environments where clarity matters more than decoration. The minimal color palette keeps attention on content, while the red accent highlights motion, progress, and decision points.\n\nThe flowing red path you see across the site represents <strong>a single continuous journey</strong>:\n\n<ul>\n<li>\nEngineering as the foundation\n\n</li>\n<li>\nFront-end development as an extension of systems thinking\n\n</li>\n<li>\nDesign as a communication tool, not just decoration\n\n</li>\n<li>\nFreelance work as applied problem-solving in real contexts\n\n</li>\n</ul>\nThese aren’t separate identities they’re branches of the same core skill set."
+                },
+                {
+                    "type": "paragraph",
+                    "text": "<b>The articles section</b> is where I think out loud. It’s a place to break down decisions, explain concepts through real examples, and document lessons learned along the way. Some posts will be technical, some reflective, but all of them are meant to capture understanding rather than just outcomes."
+                },
+                {
+                    "type": "paragraph",
+                    "text": "<b>The contact area</b> is intentionally simple and direct. If you want to collaborate, discuss an idea, or build something meaningful together, there’s no friction. Availability is clear, communication is straightforward, and expectations are transparent."
+                },
+                {
+                    "type": "paragraph",
+                    "text": "<b>This site is not meant to be static or finished. It will grow as my skills grow, improve as my thinking becomes sharper, and change as new challenges appear. Like any good system, it’s built to evolve.</b>"
+                },
+                {
+                    "type": "paragraph",
+                    "text": "If you’re here to explore how things work, you’re in the right place. If you’re here to build something together, I’m always open to the conversation."
+                }
+            ]
+        }
+    ]
+}

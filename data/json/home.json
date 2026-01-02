@@ -1,0 +1,81 @@
+{
+  "name": "Yosif Ibrahim",
+  "title": "Computer Engineer",
+  "subtitle": "Building complete end-to-end solutions, from low-level system components to user-facing applications. Focused on correctness, performance, and real-world constraints.",
+  "tools": [
+    {
+      "name": "Next.js",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nextjs/nextjs-plain.svg"
+    },
+    {
+      "name": "Node.js",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nodejs/nodejs-plain.svg"
+    },
+    {
+      "name": "React",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg"
+    },
+    {
+      "name": "Python",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-plain.svg"
+    },
+    {
+      "name": "C++",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-plain.svg"
+    },
+    {
+      "name": "Git",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/git/git-plain.svg"
+    },
+    {
+      "name": "Figma",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/figma/figma-plain.svg"
+    },
+    {
+      "name": "Illustrator",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/illustrator/illustrator-plain.svg"
+    },
+    {
+      "name": "Photoshop",
+      "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/photoshop/photoshop-plain.svg"
+    }
+  ],
+  "career": [
+    {
+      "id": 1,
+      "title": "Engineering",
+      "company": "Ainshams University",
+      "year": "2022",
+      "description": "Studying Computer Engineering, building a strong foundation in algorithms, systems design, and software development.",
+      "position": { "x": 40, "y": 418 },
+      "rotation": -90
+    },
+    {
+      "id": 2,
+      "title": "Graphic Designer",
+      "company": "ASU Racing Team",
+      "year": "2024",
+      "description": "Created visual identities, marketing materials, and team branding for the university's racing competition team.",
+      "position": { "x": 190, "y": 280 },
+      "rotation": 90
+    },
+    {
+      "id": 3,
+      "title": "Front-End Developer",
+      "company": "TheDevHouse",
+      "year": "2025",
+      "description": "Built modern web applications using React and Next.js, focusing on responsive design and optimal user experience.",
+      "position": { "x": 80, "y": 185 },
+      "rotation": -90
+    },
+    {
+      "id": 4,
+      "title": "Freelancer",
+      "company": "Self-Employed",
+      "year": "2026",
+      "description": "Delivering custom software solutions for clients, from web applications to mobile apps and design systems.",
+      "position": { "x": 268, "y": 17 },
+      "rotation": 0
+    }
+  ]
+}

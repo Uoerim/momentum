@@ -171,18 +171,18 @@ body::before {
 }
 
 /* Delay classes - only apply when animation is active */
-.animate-home .delay-100, .animate-projects .delay-100 { animation-delay: 0.1s; }
-.animate-home .delay-200, .animate-projects .delay-200 { animation-delay: 0.2s; }
-.animate-home .delay-300, .animate-projects .delay-300 { animation-delay: 0.3s; }
-.animate-home .delay-400, .animate-projects .delay-400 { animation-delay: 0.4s; }
-.animate-home .delay-500, .animate-projects .delay-500 { animation-delay: 0.5s; }
-.animate-home .delay-600, .animate-projects .delay-600 { animation-delay: 0.6s; }
-.animate-home .delay-700, .animate-projects .delay-700 { animation-delay: 0.7s; }
-.animate-home .delay-800, .animate-projects .delay-800 { animation-delay: 0.8s; }
-.animate-home .delay-1000, .animate-projects .delay-1000 { animation-delay: 1s; }
-.animate-home .delay-1200, .animate-projects .delay-1200 { animation-delay: 1.2s; }
-.animate-home .delay-1400, .animate-projects .delay-1400 { animation-delay: 1.4s; }
-.animate-home .delay-1600, .animate-projects .delay-1600 { animation-delay: 1.6s; }
+.animate-home .delay-100, .animate-projects .delay-100, .animate-blogs .delay-100 { animation-delay: 0.1s; }
+.animate-home .delay-200, .animate-projects .delay-200, .animate-blogs .delay-200 { animation-delay: 0.2s; }
+.animate-home .delay-300, .animate-projects .delay-300, .animate-blogs .delay-300 { animation-delay: 0.3s; }
+.animate-home .delay-400, .animate-projects .delay-400, .animate-blogs .delay-400 { animation-delay: 0.4s; }
+.animate-home .delay-500, .animate-projects .delay-500, .animate-blogs .delay-500 { animation-delay: 0.5s; }
+.animate-home .delay-600, .animate-projects .delay-600, .animate-blogs .delay-600 { animation-delay: 0.6s; }
+.animate-home .delay-700, .animate-projects .delay-700, .animate-blogs .delay-700 { animation-delay: 0.7s; }
+.animate-home .delay-800, .animate-projects .delay-800, .animate-blogs .delay-800 { animation-delay: 0.8s; }
+.animate-home .delay-1000, .animate-projects .delay-1000, .animate-blogs .delay-1000 { animation-delay: 1s; }
+.animate-home .delay-1200, .animate-projects .delay-1200, .animate-blogs .delay-1200 { animation-delay: 1.2s; }
+.animate-home .delay-1400, .animate-projects .delay-1400, .animate-blogs .delay-1400 { animation-delay: 1.4s; }
+.animate-home .delay-1600, .animate-projects .delay-1600, .animate-blogs .delay-1600 { animation-delay: 1.6s; }
 
 /* Trigger animations for projects page */
 .animate-projects .animate-fade-in-up {
@@ -191,6 +191,17 @@ body::before {
 
 .animate-projects .animate-fade-in {
   animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Trigger animations for blogs page */
+.animate-blogs .animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-blogs .animate-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
 .nav-bar {

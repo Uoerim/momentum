@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import homeData from "@/data/json/home.json";
 
 interface HomeContentProps {
     isLoading?: boolean;
@@ -9,27 +10,10 @@ interface HomeContentProps {
 
 export default function HomeContent({ isLoading = false }: HomeContentProps) {
     const [tooltip, setTooltip] = useState({ visible: false, text: "", x: 0, y: 0 });
-    const [careerTooltip, setCareerTooltip] = useState({ visible: false, company: "", year: "", x: 0, y: 0 });
+    const [careerTooltip, setCareerTooltip] = useState({ visible: false, company: "", year: "", description: "", x: 0, y: 0 });
     const tooltipRef = useRef<HTMLDivElement>(null);
 
-    const tools = [
-        { name: "Python", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-plain.svg" },
-        { name: "TypeScript", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-plain.svg" },
-        { name: "React", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg" },
-        { name: "Next.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nextjs/nextjs-plain.svg" },
-        { name: "Node.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nodejs/nodejs-plain.svg" },
-        { name: "C++", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-plain.svg" },
-        { name: "Docker", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/docker/docker-plain.svg" },
-        { name: "Git", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/git/git-plain.svg" },
-        { name: "Figma", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/figma/figma-plain.svg" },
-    ];
-
-    const careerStops = [
-        { id: 1, title: "Engineering", company: "Ainshams University", year: "2022" },
-        { id: 2, title: "Graphic Designer", company: "ASU Racing Team", year: "2024" },
-        { id: 3, title: "Mobile Developer", company: "DevHouse", year: "2025" },
-        { id: 4, title: "Freelancer", company: "Self-Employed", year: "2026" },
-    ];
+    const { name, title, subtitle, tools, career } = homeData;
 
     const handleMouseMove = (e: React.MouseEvent, name: string) => {
         setTooltip({
@@ -44,11 +28,12 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
         setTooltip((prev) => ({ ...prev, visible: false }));
     };
 
-    const handleCareerMouseMove = (e: React.MouseEvent, company: string, year: string) => {
+    const handleCareerMouseMove = (e: React.MouseEvent, company: string, year: string, description: string) => {
         setCareerTooltip({
             visible: true,
             company,
             year,
+            description,
             x: e.clientX + 15,
             y: e.clientY + 10,
         });
@@ -88,7 +73,7 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
                         marginBottom: "0.5rem",
                         fontWeight: 400
                     }}>
-                        Computer Engineer
+                        {title}
                     </p>
                     
                     <h1 className="animate-fade-in-up delay-200" style={{ 
@@ -98,7 +83,7 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
                         letterSpacing: "-0.02em",
                         lineHeight: 1.1
                     }}>
-                        Yosif Ibrahim
+                        {name}
                     </h1>
                     
                     <p className="animate-fade-in-up delay-300" style={{ 
@@ -111,9 +96,7 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
                         fontStyle: "normal",
                         textAlign: "left"
                     }}>
-                        Building complete end-to-end solutions, from low-level system components 
-                        to user-facing applications. <br/> Focused on correctness, performance, and 
-                        real-world constraints.
+                        {subtitle}
                     </p>
 
                     <p className="animate-fade-in-up delay-400" style={{ 
@@ -217,22 +200,10 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
                     </svg>
 
                     {/* Career Stop Markers */}
-                    {careerStops.map((stop, index) => {
-                        // Position each stop along the vertical curved path
-                        // Path: M 60 420 -> C curves to 120,340 -> 180,260 -> 100,180 -> 200,100 -> 280,30
-                        const positions = [
-                            { x: 40, y: 418 },    // Ainshams University - Start point
-                            { x: 190, y: 280 },   // ASU Racing Team - On curve
-                            { x: 80, y: 185 },    // DevHouse - On curve
-                            { x: 268, y: 17 },    // Freelancer - End point
-                        ];
-                        // Rotation for each pin: Engineering -90, Graphic Designer 90, Mobile Developer -90, Freelancer 0
-                        const rotations = [-90, 90, -90, 0];
+                    {career.map((stop, index) => {
                         // Staggered animation delays for each pin
                         const animationDelays = ["delay-1000", "delay-1200", "delay-1400", "delay-1600"];
-                        const pos = positions[index];
-                        const rotation = rotations[index];
-                        const isLast = index === careerStops.length - 1;
+                        const isLast = index === career.length - 1;
                         
                         return (
                             <div
@@ -240,8 +211,8 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
                                 className={`animate-fade-in ${animationDelays[index]}`}
                                 style={{
                                     position: "absolute",
-                                    left: pos.x,
-                                    top: pos.y,
+                                    left: stop.position.x,
+                                    top: stop.position.y,
                                     transform: "translate(0, -50%)",
                                     display: "flex",
                                     flexDirection: "row",
@@ -249,7 +220,7 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
                                     cursor: "pointer",
                                     gap: "10px"
                                 }}
-                                onMouseMove={(e) => handleCareerMouseMove(e, stop.company, stop.year)}
+                                onMouseMove={(e) => handleCareerMouseMove(e, stop.company, stop.year, stop.description)}
                                 onMouseLeave={handleCareerMouseLeave}
                             >
                                 {/* Pin SVG */}
@@ -262,7 +233,7 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
                                             ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))" 
                                             : "drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))",
                                         flexShrink: 0,
-                                        transform: `rotate(${rotation}deg)`
+                                        transform: `rotate(${stop.rotation}deg)`
                                     }}
                                 >
                                     <path 
@@ -312,11 +283,34 @@ export default function HomeContent({ isLoading = false }: HomeContentProps) {
             {/* Career Tooltip */}
             <div
                 className={`tooltip ${careerTooltip.visible ? "visible" : ""}`}
-                style={{ left: careerTooltip.x, top: careerTooltip.y }}
+                style={{ 
+                    left: careerTooltip.x, 
+                    top: careerTooltip.y,
+                    maxWidth: "280px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "6px",
+                    whiteSpace: "normal"
+                }}
             >
-                <span style={{ color: "#dc143c", fontWeight: 500 }}>{careerTooltip.company}</span>
-                <span style={{ color: "#666", marginLeft: "6px" }}>•</span>
-                <span style={{ color: "#888", marginLeft: "6px" }}>{careerTooltip.year}</span>
+                <div>
+                    <span style={{ color: "#dc143c", fontWeight: 500 }}>{careerTooltip.company}</span>
+                    <span style={{ color: "#666", marginLeft: "6px" }}>•</span>
+                    <span style={{ color: "#888", marginLeft: "6px" }}>{careerTooltip.year}</span>
+                </div>
+                {careerTooltip.description && (
+                    <p style={{ 
+                        color: "#aaa", 
+                        fontSize: "0.75rem", 
+                        margin: 0,
+                        lineHeight: 1.4,
+                        whiteSpace: "normal",
+                        wordWrap: "break-word"
+                    }}>
+                        {careerTooltip.description}
+                    </p>
+                )}
             </div>
         </>
     );

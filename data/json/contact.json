@@ -1,0 +1,27 @@
+{
+    "contact": {
+        "name": "Yosuf",
+        "tagline": "Let's create something extraordinary together",
+        "email": {
+            "address": "yosufmaib@gmail.com",
+            "label": "Email"
+        },
+        "whatsapp": {
+            "number": "+20 1286666785",
+            "label": "WhatsApp"
+        },
+        "instagram": {
+            "handle": "@yosufmaib",
+            "url": "https://instagram.com/yosufmaib",
+            "label": "Instagram"
+        },
+        "availability": {
+            "status": "available",
+            "response": "Usually responds within 24 hours"
+        },
+        "location": {
+            "city": "Cairo",
+            "timezone": "Africa/Cairo"
+        }
+    }
+}
