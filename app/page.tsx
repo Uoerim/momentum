@@ -89,21 +89,8 @@ export default function MainPage() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [getIndexFromPath]);
 
-  // Wheel and keyboard navigation
+  // Keyboard navigation only (scroll and touch disabled)
   useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-
-      const now = Date.now();
-      if (now - lastScrollTime.current < scrollCooldown) return;
-
-      if (e.deltaY > 10) {
-        navigateToIndex(currentIndex + 1);
-      } else if (e.deltaY < -10) {
-        navigateToIndex(currentIndex - 1);
-      }
-    };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       const now = Date.now();
       if (now - lastScrollTime.current < scrollCooldown) return;
@@ -117,40 +104,9 @@ export default function MainPage() {
       }
     };
 
-    let touchStartX = 0;
-    let touchStartY = 0;
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      const now = Date.now();
-      if (now - lastScrollTime.current < scrollCooldown) return;
-
-      const touchEndX = e.changedTouches[0].clientX;
-      const touchEndY = e.changedTouches[0].clientY;
-      const diffX = touchStartX - touchEndX;
-      const diffY = touchStartY - touchEndY;
-
-      if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (diffX > 50) navigateToIndex(currentIndex + 1);
-        else if (diffX < -50) navigateToIndex(currentIndex - 1);
-      } else {
-        if (diffY > 50) navigateToIndex(currentIndex + 1);
-        else if (diffY < -50) navigateToIndex(currentIndex - 1);
-      }
-    };
-
-    window.addEventListener("wheel", handleWheel, { passive: false });
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchend", handleTouchEnd);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [currentIndex, navigateToIndex]);
@@ -219,7 +175,7 @@ export default function MainPage() {
             id={section.id}
             className={`section ${index === currentIndex ? "active" : ""}`}
           >
-            <section.component isLoading={isLoading} />
+            <section.component isLoading={isLoading} isActive={index === currentIndex} />
           </section>
         ))}
       </div>

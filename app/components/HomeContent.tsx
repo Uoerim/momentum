@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 
 interface HomeContentProps {
     isLoading?: boolean;
+    isActive?: boolean;
 }
 
 export default function HomeContent({ isLoading = false }: HomeContentProps) {

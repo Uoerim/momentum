@@ -1,4 +1,9 @@
-export default function BlogContent() {
+interface BlogContentProps {
+    isLoading?: boolean;
+    isActive?: boolean;
+}
+
+export default function BlogContent({}: BlogContentProps) {
     return (
         <div className="page-content">
             <h1>Blog</h1>

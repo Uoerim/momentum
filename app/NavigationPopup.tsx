@@ -14,11 +14,11 @@ export default function NavigationPopup() {
         // Fade in after loading screen finishes (3.1s)
         const fadeInTimer = setTimeout(() => setShow(true), 3200);
         
-        // Start fade out after 4 seconds of being visible
-        const fadeOutTimer = setTimeout(() => setShow(false), 7500);
+        // Start fade out after 9 seconds of being visible
+        const fadeOutTimer = setTimeout(() => setShow(false), 12000);
         
         // Remove from DOM after fade out animation completes
-        const removeTimer = setTimeout(() => setRemoved(true), 8500);
+        const removeTimer = setTimeout(() => setRemoved(true), 13000);
 
         return () => {
             clearTimeout(fadeInTimer);

@@ -26,6 +26,32 @@ body {
   position: relative;
 }
 
+/* Custom Scrollbar */
+.page-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.page-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+
+.page-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.page-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+}
+
+/* Firefox scrollbar */
+.page-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.03);
+}
+
 body::before {
   content: "";
   position: fixed;
@@ -145,18 +171,27 @@ body::before {
 }
 
 /* Delay classes - only apply when animation is active */
-.animate-home .delay-100 { animation-delay: 0.1s; }
-.animate-home .delay-200 { animation-delay: 0.2s; }
-.animate-home .delay-300 { animation-delay: 0.3s; }
-.animate-home .delay-400 { animation-delay: 0.4s; }
-.animate-home .delay-500 { animation-delay: 0.5s; }
-.animate-home .delay-600 { animation-delay: 0.6s; }
-.animate-home .delay-700 { animation-delay: 0.7s; }
-.animate-home .delay-800 { animation-delay: 0.8s; }
-.animate-home .delay-1000 { animation-delay: 1s; }
-.animate-home .delay-1200 { animation-delay: 1.2s; }
-.animate-home .delay-1400 { animation-delay: 1.4s; }
-.animate-home .delay-1600 { animation-delay: 1.6s; }
+.animate-home .delay-100, .animate-projects .delay-100 { animation-delay: 0.1s; }
+.animate-home .delay-200, .animate-projects .delay-200 { animation-delay: 0.2s; }
+.animate-home .delay-300, .animate-projects .delay-300 { animation-delay: 0.3s; }
+.animate-home .delay-400, .animate-projects .delay-400 { animation-delay: 0.4s; }
+.animate-home .delay-500, .animate-projects .delay-500 { animation-delay: 0.5s; }
+.animate-home .delay-600, .animate-projects .delay-600 { animation-delay: 0.6s; }
+.animate-home .delay-700, .animate-projects .delay-700 { animation-delay: 0.7s; }
+.animate-home .delay-800, .animate-projects .delay-800 { animation-delay: 0.8s; }
+.animate-home .delay-1000, .animate-projects .delay-1000 { animation-delay: 1s; }
+.animate-home .delay-1200, .animate-projects .delay-1200 { animation-delay: 1.2s; }
+.animate-home .delay-1400, .animate-projects .delay-1400 { animation-delay: 1.4s; }
+.animate-home .delay-1600, .animate-projects .delay-1600 { animation-delay: 1.6s; }
+
+/* Trigger animations for projects page */
+.animate-projects .animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-projects .animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
 
 .nav-bar {
   display: flex;

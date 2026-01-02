@@ -1,4 +1,9 @@
-export default function ContactContent() {
+interface ContactContentProps {
+    isLoading?: boolean;
+    isActive?: boolean;
+}
+
+export default function ContactContent({}: ContactContentProps) {
     return (
         <div className="page-content">
             <h1>Contact</h1>
