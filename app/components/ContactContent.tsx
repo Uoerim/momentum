@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import contactData from "@/data/json/contact.json";
 
 interface ContactContentProps {
@@ -19,9 +19,58 @@ export default function ContactContent({ isLoading = false, isActive = false }: 
     const [showContent, setShowContent] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState<string>("");
+    const [isMobile, setIsMobile] = useState(false);
+    const [scrollVisible, setScrollVisible] = useState<Set<string>>(new Set());
+    const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
     const contact = contactData.contact;
     const status = statusColors[contact.availability.status] || statusColors.available;
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+
+    // Scroll animation observer for mobile
+    useEffect(() => {
+        if (!isMobile) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    const id = entry.target.getAttribute("data-scroll-id");
+                    if (!id) return;
+                    
+                    setScrollVisible((prev) => {
+                        const newSet = new Set(prev);
+                        if (entry.isIntersecting) {
+                            newSet.add(id);
+                        } else {
+                            newSet.delete(id);
+                        }
+                        return newSet;
+                    });
+                });
+            },
+            { threshold: 0.2, rootMargin: "-30px" }
+        );
+
+        Object.values(sectionRefs.current).forEach((el) => {
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [isMobile]);
+
+    const setRef = useCallback((id: string) => (el: HTMLElement | null) => {
+        sectionRefs.current[id] = el;
+    }, []);
+
+    const isScrollVisible = (id: string) => scrollVisible.has(id);
 
     // Update Cairo time every second
     useEffect(() => {
@@ -118,24 +167,30 @@ export default function ContactContent({ isLoading = false, isActive = false }: 
             className="page-content"
             style={{
                 width: "100%",
-                height: "100%",
+                height: isMobile ? "auto" : "100%",
+                minHeight: isMobile ? "100vh" : undefined,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 background: "var(--background)",
-                padding: "0 4rem",
+                padding: isMobile ? "3rem 1.5rem" : "0 4rem",
                 boxSizing: "border-box",
                 overflowY: "auto",
             }}
         >
             <div
+                ref={setRef("contact-main")}
+                data-scroll-id="contact-main"
                 style={{
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     maxWidth: "600px",
                     width: "100%",
+                    opacity: isMobile ? (isScrollVisible("contact-main") ? 1 : 0) : 1,
+                    transform: isMobile ? (isScrollVisible("contact-main") ? "translateY(0)" : "translateY(30px)") : "none",
+                    transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
                 }}
             >
                 {/* Availability Badge */}

@@ -6,8 +6,14 @@ export default function NavigationPopup() {
     const [mounted, setMounted] = useState(false);
     const [show, setShow] = useState(false);
     const [removed, setRemoved] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
+        // Check if mobile
+        const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+
         // Mount the component
         setMounted(true);
         
@@ -21,13 +27,15 @@ export default function NavigationPopup() {
         const removeTimer = setTimeout(() => setRemoved(true), 13000);
 
         return () => {
+            window.removeEventListener("resize", checkMobile);
             clearTimeout(fadeInTimer);
             clearTimeout(fadeOutTimer);
             clearTimeout(removeTimer);
         };
     }, []);
 
-    if (removed) return null;
+    // Don't show on mobile or if removed
+    if (removed || isMobile) return null;
 
     return (
         <div

@@ -20,14 +20,32 @@ export default function MainPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [allGlow, setAllGlow] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const canNavigate = useRef(true);
   const lastScrollTime = useRef(0);
   const scrollCooldown = 1200; // ms to ignore scroll inertia
 
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   // Get section index from pathname
   const getIndexFromPath = useCallback((path: string) => {
-    const index = sections.findIndex((s) => s.path === path);
-    return index >= 0 ? index : 0;
+    // First try exact match
+    const exactIndex = sections.findIndex((s) => s.path === path);
+    if (exactIndex >= 0) return exactIndex;
+
+    // Then try prefix match (e.g., /blog/some-slug should match /blog)
+    const prefixIndex = sections.findIndex((s) => s.path !== "/" && path.startsWith(s.path));
+    if (prefixIndex >= 0) return prefixIndex;
+
+    return 0;
   }, []);
 
   // Navigate to section
@@ -60,22 +78,37 @@ export default function MainPage() {
     const index = getIndexFromPath(pathname);
     setCurrentIndex(index);
     window.dispatchEvent(new CustomEvent("activeSectionChange", { detail: sections[index].id }));
+  }, [pathname, getIndexFromPath]);
 
+  // Loading animation - runs once on mount
+  useEffect(() => {
     // After all icons are lit (2.6s), start fade out
     const fadeTimer = setTimeout(() => {
-      setAllGlow(true); // This now triggers fade-out class
+      setAllGlow(true);
     }, 2600);
 
     // Hide loading screen after fade out (3.1s)
     const hideTimer = setTimeout(() => {
       setIsLoading(false);
+
+      // Mobile auto-scroll to section after loading
+      const index = getIndexFromPath(window.location.pathname);
+      if (window.innerWidth <= 768 && index > 0) {
+        setTimeout(() => {
+          const sectionEl = document.getElementById(sections[index].id);
+          if (sectionEl) {
+            sectionEl.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 100);
+      }
     }, 3100);
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(hideTimer);
     };
-  }, [pathname, getIndexFromPath]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Handle browser back/forward
   useEffect(() => {
@@ -173,9 +206,9 @@ export default function MainPage() {
           <section
             key={section.id}
             id={section.id}
-            className={`section ${index === currentIndex ? "active" : ""}`}
+            className={`section ${isMobile || index === currentIndex ? "active" : ""}`}
           >
-            <section.component isLoading={isLoading} isActive={index === currentIndex} />
+            <section.component isLoading={isLoading} isActive={isMobile || index === currentIndex} />
           </section>
         ))}
       </div>

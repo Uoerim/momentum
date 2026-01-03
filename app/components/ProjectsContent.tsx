@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import projectsData from "@/data/json/projects.json";
 
@@ -30,9 +30,10 @@ interface CardPosition {
 interface ProjectsContentProps {
     isLoading?: boolean;
     isActive?: boolean;
+    initialProjectName?: string;
 }
 
-export default function ProjectsContent({ isLoading = false, isActive = false }: ProjectsContentProps) {
+export default function ProjectsContent({ isLoading = false, isActive = false, initialProjectName }: ProjectsContentProps) {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -42,12 +43,126 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
     const [visibleCards, setVisibleCards] = useState<number[]>([]);
     const [cardsAnimated, setCardsAnimated] = useState(false);
     const [currentPage, setCurrentPage] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+    const [isTablet, setIsTablet] = useState(false);
+    const [scrollVisible, setScrollVisible] = useState<Set<string>>(new Set());
+    const [initialProjectOpened, setInitialProjectOpened] = useState(false);
     const prevIsActive = useRef(false);
     const cardRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+    const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
-    const cardsPerPage = 8;
+    useEffect(() => {
+        const checkScreen = () => {
+            setIsMobile(window.innerWidth <= 480);
+            setIsTablet(window.innerWidth <= 768 && window.innerWidth > 480);
+        };
+        checkScreen();
+        window.addEventListener("resize", checkScreen);
+        return () => window.removeEventListener("resize", checkScreen);
+    }, []);
+
+    // Helper function to convert project name to slug
+    const nameToSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+    
+    // State to track if we opened directly via URL (skip animation)
+    const [openedViaUrl, setOpenedViaUrl] = useState(false);
+    
+    // Open project from initialProjectName prop or sessionStorage (for mobile redirect)
+    useEffect(() => {
+        if (initialProjectOpened || !isActive) return;
+        
+        const nameToOpen = initialProjectName || (typeof window !== 'undefined' ? sessionStorage.getItem("openProjectName") : null);
+        
+        if (nameToOpen) {
+            const project = projects.find(p => nameToSlug(p.name) === nameToOpen);
+            if (project) {
+                setInitialProjectOpened(true);
+                setOpenedViaUrl(true);
+                // Clear from sessionStorage
+                if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem("openProjectName");
+                }
+                // Open project directly - skip animation, go straight to flipped state
+                // Use center position directly - matching getModalDimensions
+                const dims = isMobile 
+                    ? { cardWidth: Math.min(320, window.innerWidth - 40), cardHeight: Math.min(500, window.innerHeight - 100), totalWidth: Math.min(320, window.innerWidth - 40) }
+                    : isTablet 
+                        ? { cardWidth: 320, cardHeight: 480, totalWidth: 700 }
+                        : { cardWidth: 420, cardHeight: 580, totalWidth: 970 };
+                const modalStartX = (window.innerWidth - dims.totalWidth) / 2;
+                const cx = modalStartX;
+                const cy = (window.innerHeight - dims.cardHeight) / 2;
+                
+                setCardRect({ x: cx, y: cy, width: dims.cardWidth, height: dims.cardHeight });
+                setSelectedId(project.id);
+                setShowBackdrop(true);
+                setIsFlipped(true);
+                setIsAnimating(false);
+            }
+        }
+    }, [initialProjectName, initialProjectOpened, isActive, isMobile, isTablet]);
+
+    // Scroll animation observer for mobile
+    useEffect(() => {
+        if (!isMobile && !isTablet) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    const id = entry.target.getAttribute("data-scroll-id");
+                    if (!id) return;
+                    
+                    setScrollVisible((prev) => {
+                        const newSet = new Set(prev);
+                        if (entry.isIntersecting) {
+                            newSet.add(id);
+                        } else {
+                            newSet.delete(id);
+                        }
+                        return newSet;
+                    });
+                });
+            },
+            { threshold: 0.1, rootMargin: "-30px" }
+        );
+
+        Object.values(sectionRefs.current).forEach((el) => {
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [isMobile, isTablet]);
+
+    const setRef = useCallback((id: string) => (el: HTMLElement | null) => {
+        sectionRefs.current[id] = el;
+    }, []);
+
+    const isScrollVisible = (id: string) => scrollVisible.has(id);
+
+    // Mobile uses "load more" pattern, desktop uses pagination
+    const initialMobileCards = 4;
+    const [mobileLoadedCount, setMobileLoadedCount] = useState(initialMobileCards);
+    const cardsPerPage = isMobile ? projects.length : isTablet ? 6 : 8;
     const totalPages = Math.ceil(projects.length / cardsPerPage);
-    const currentPageProjects = projects.slice(currentPage * cardsPerPage, (currentPage + 1) * cardsPerPage);
+    
+    // For mobile, show loaded count; for desktop, use pagination
+    const currentPageProjects = isMobile 
+        ? projects.slice(0, mobileLoadedCount)
+        : projects.slice(currentPage * cardsPerPage, (currentPage + 1) * cardsPerPage);
+    
+    const hasMoreToLoad = isMobile && mobileLoadedCount < projects.length;
+    
+    const loadMoreProjects = () => {
+        const newCount = Math.min(mobileLoadedCount + 4, projects.length);
+        const newProjects = projects.slice(mobileLoadedCount, newCount);
+        // Animate new projects
+        newProjects.forEach((project, index) => {
+            setTimeout(() => {
+                setVisibleCards(prev => [...prev, project.id]);
+            }, 50 + index * 80);
+        });
+        setMobileLoadedCount(newCount);
+    };
 
     // Trigger card loading animation when section becomes active or page changes
     useEffect(() => {
@@ -105,6 +220,14 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
         setSelectedId(projectId);
         setIsAnimating(true);
         
+        // Update URL to project name (desktop only)
+        if (!isMobile && !isTablet) {
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+                window.history.pushState(null, "", `/projects/${nameToSlug(project.name)}`);
+            }
+        }
+        
         // Start the animation to center after capturing position
         requestAnimationFrame(() => {
             setShowBackdrop(true);
@@ -115,6 +238,11 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
     };
 
     const closeModal = () => {
+        // Update URL back to /projects (desktop only)
+        if (!isMobile && !isTablet) {
+            window.history.pushState(null, "", "/projects");
+        }
+        
         // Re-capture the card position before animating back
         if (selectedId !== null) {
             const cardEl = cardRefs.current[selectedId];
@@ -153,21 +281,30 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [selectedId, isFlipped]);
 
-    // Calculate center position for modal - center the card+image combination
-    // Card: 450px, Gap: 30px, Image: 700px = 1180px total. Offset = 1180/2 = 590
-    const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 - 590 : 0;
-    const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 - 325 : 0;
+    // Calculate center position for modal - responsive
+    const getModalDimensions = () => {
+        if (typeof window === 'undefined') return { cardWidth: 420, cardHeight: 580, imageWidth: 600, totalWidth: 1050, gap: 30 };
+        if (isMobile) return { cardWidth: Math.min(320, window.innerWidth - 40), cardHeight: Math.min(500, window.innerHeight - 100), imageWidth: 0, totalWidth: Math.min(320, window.innerWidth - 40), gap: 0 };
+        if (isTablet) return { cardWidth: 320, cardHeight: 480, imageWidth: 360, totalWidth: 700, gap: 20 };
+        return { cardWidth: 420, cardHeight: 580, imageWidth: 600, totalWidth: 1050, gap: 30 };
+    };
+    const modalDims = getModalDimensions();
+    // Center the entire modal (card + gap + image) horizontally
+    const modalStartX = typeof window !== 'undefined' ? (window.innerWidth - modalDims.totalWidth) / 2 : 0;
+    const centerX = modalStartX;
+    const centerY = typeof window !== 'undefined' ? (window.innerHeight - modalDims.cardHeight) / 2 : 0;
 
     return (
         <div
-            className={`${!isLoading ? "animate-projects" : ""}`}
+            className={`page-content ${!isLoading ? "animate-projects" : ""}`}
             style={{
                 width: "100%",
-                height: "100%",
+                height: isMobile ? "auto" : "100%",
+                minHeight: isMobile ? "100vh" : undefined,
                 display: "flex",
                 flexDirection: "column",
                 background: "var(--background)",
-                padding: "2rem",
+                padding: isMobile ? "2rem 1.5rem" : "2rem",
                 boxSizing: "border-box"
             }}
         >
@@ -180,13 +317,39 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: showBackdrop ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0)",
+                    background: showBackdrop ? "rgba(0,0,0,0.85)" : "rgba(0,0,0,0)",
                     zIndex: selectedId !== null ? 998 : -1,
                     transition: "background 0.4s ease",
                     cursor: isFlipped ? "pointer" : "default",
                     pointerEvents: selectedId !== null && showBackdrop ? "auto" : "none"
                 }}
-            />
+            >
+                {/* Mobile/Tablet background image */}
+                {(isMobile || isTablet) && selectedId !== null && showBackdrop && (() => {
+                    const project = projects.find(p => p.id === selectedId);
+                    return project ? (
+                        <div style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            opacity: isFlipped ? 0.2 : 0,
+                            transition: "opacity 0.5s ease 0.2s"
+                        }}>
+                            <Image
+                                src={project.image}
+                                alt={project.name}
+                                fill
+                                style={{
+                                    objectFit: "cover",
+                                    objectPosition: "center"
+                                }}
+                            />
+                        </div>
+                    ) : null;
+                })()}
+            </div>
 
             {/* Cards Container */}
             <div 
@@ -197,15 +360,16 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                     flexDirection: "column",
                     justifyContent: "center",
                     alignItems: "center",
-                    padding: "0 4rem",
+                    padding: isMobile ? "0 0.5rem" : isTablet ? "0 1rem" : "0 4rem",
                     minHeight: 0
                 }}
             >
                 {/* Header */}
                 <div style={{
                     width: "100%",
-                    maxWidth: "800px",
-                    marginBottom: "1.5rem"
+                    maxWidth: isMobile ? "100%" : "800px",
+                    marginBottom: "1.5rem",
+                    textAlign: isMobile ? "center" : "left"
                 }}>
                     <p style={{
                         fontSize: "0.65rem",
@@ -223,10 +387,11 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                 {/* Cards Grid */}
                 <div style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(4, 180px)",
-                    gridTemplateRows: "repeat(2, 260px)",
-                    gap: "1.25rem",
-                    maxWidth: "1000px"
+                    gridTemplateColumns: isMobile ? "1fr" : isTablet ? "repeat(3, 140px)" : "repeat(4, 180px)",
+                    gridTemplateRows: isMobile ? "auto" : isTablet ? "repeat(2, 220px)" : "repeat(2, 260px)",
+                    gap: isMobile ? "1rem" : isTablet ? "1rem" : "1.25rem",
+                    maxWidth: isMobile ? "100%" : "1000px",
+                    width: isMobile ? "100%" : "auto"
                 }}>
                 {currentPageProjects.map((project, index) => {
                     const suit = suits[project.suit];
@@ -235,11 +400,19 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                     const isSelected = selectedId === project.id;
                     const isCardActive = isSelected && isAnimating;
                     const isCardVisible = visibleCards.includes(project.id);
+                    const cardScrollId = `card-${project.id}`;
+                    const cardIsScrollVisible = isScrollVisible(cardScrollId);
 
                     return (
                         <div
                             key={project.id}
-                            ref={(el) => { cardRefs.current[project.id] = el; }}
+                            ref={(el) => { 
+                                cardRefs.current[project.id] = el;
+                                if (isMobile || isTablet) {
+                                    sectionRefs.current[cardScrollId] = el;
+                                }
+                            }}
+                            data-scroll-id={cardScrollId}
                             onClick={() => {
                                 if (selectedId === null) {
                                     openModal(project.id);
@@ -248,23 +421,29 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                             onMouseEnter={() => !isSelected && setHoveredId(project.id)}
                             onMouseLeave={() => setHoveredId(null)}
                             style={{
-                                opacity: isCardVisible ? 1 : 0,
+                                opacity: (isMobile || isTablet) ? (cardIsScrollVisible ? 1 : 0) : (isCardVisible ? 1 : 0),
                                 visibility: isCardActive ? "hidden" : "visible",
                                 background: "#EDEDED",
                                 borderRadius: "12px",
                                 position: "relative",
                                 cursor: selectedId === null ? "pointer" : "default",
                                 transition: "opacity 0.5s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s ease",
-                                transform: isHovered 
-                                    ? `translateY(-8px) rotate(${(index % 2 === 0 ? 2 : -2)}deg)` 
-                                    : isCardVisible ? "translateY(0) rotate(0deg)" : "translateY(40px) rotate(0deg)",
+                                transitionDelay: (isMobile || isTablet) ? `${index * 0.05}s` : "0s",
+                                transform: (isMobile || isTablet)
+                                    ? (cardIsScrollVisible ? "translateY(0) scale(1)" : "translateY(30px) scale(0.95)")
+                                    : (isHovered 
+                                        ? `translateY(-8px) rotate(${(index % 2 === 0 ? 2 : -2)}deg)` 
+                                        : isCardVisible ? "translateY(0) rotate(0deg)" : "translateY(40px) rotate(0deg)"),
                                 boxShadow: isHovered 
                                     ? "0 20px 40px rgba(0,0,0,0.3), 0 0 0 2px rgba(0,0,0,0.1)" 
                                     : "0 4px 12px rgba(0,0,0,0.15)",
                                 display: "flex",
                                 flexDirection: "column",
                                 padding: "0.75rem",
-                                overflow: "hidden"
+                                overflow: "hidden",
+                                aspectRatio: "2.5/3.5",
+                                width: isMobile ? "200px" : "auto",
+                                margin: isMobile ? "0 auto" : "0"
                             }}
                         >
                             {/* Top Left Corner */}
@@ -363,8 +542,8 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                 })}
                 </div>
 
-                {/* Pagination Arrows */}
-                {totalPages > 1 && (
+                {/* Pagination Arrows - Desktop only */}
+                {!isMobile && totalPages > 1 && (
                     <div style={{
                         display: "flex",
                         alignItems: "center",
@@ -459,6 +638,36 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                         </button>
                     </div>
                 )}
+
+                {/* Load More Button - Mobile only */}
+                {isMobile && hasMoreToLoad && (
+                    <button
+                        onClick={loadMoreProjects}
+                        style={{
+                            marginTop: "1.5rem",
+                            padding: "0.75rem 2rem",
+                            background: "transparent",
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            borderRadius: "8px",
+                            color: "#fff",
+                            fontSize: "0.85rem",
+                            fontWeight: 500,
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            letterSpacing: "0.05em"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                        }}
+                    >
+                        Load More Projects
+                    </button>
+                )}
             </div>
 
             {/* Animated Card Modal */}
@@ -474,8 +683,8 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                             position: "fixed",
                             left: showBackdrop ? centerX : cardRect.x,
                             top: showBackdrop ? centerY : cardRect.y,
-                            width: showBackdrop ? 450 : 180,
-                            height: showBackdrop ? 650 : 260,
+                            width: showBackdrop ? modalDims.cardWidth : (isMobile ? 200 : isTablet ? 140 : 180),
+                            height: showBackdrop ? modalDims.cardHeight : (isMobile ? 280 : isTablet ? 220 : 260),
                             zIndex: 1000,
                             perspective: "1500px",
                             transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1), top 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -774,37 +983,36 @@ export default function ProjectsContent({ isLoading = false, isActive = false }:
                         </div>
                     </div>
                     
-                    {/* Image Panel - appears on the right after flip */}
+                    {/* Image Panel - appears on the right after flip (hidden on mobile/tablet) */}
+                    {!isMobile && !isTablet && (
                     <div
                         style={{
                             position: "fixed",
-                            left: centerX + 450 + 30,
+                            left: centerX + modalDims.cardWidth + modalDims.gap,
                             top: centerY,
-                            width: 700,
-                            height: 650,
+                            width: modalDims.imageWidth,
+                            height: modalDims.cardHeight,
                             zIndex: 999,
                             opacity: isFlipped ? 1 : 0,
-                            transform: isFlipped ? "translateX(0)" : "translateX(-20px)",
-                            transition: "opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s",
+                            transform: isFlipped ? "translateX(0)" : "translateX(-30px)",
+                            transition: "opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s",
                             pointerEvents: isFlipped ? "auto" : "none",
                             borderRadius: "16px",
                             overflow: "hidden",
-                            boxShadow: "0 30px 80px rgba(0,0,0,0.4)"
+                            boxShadow: "0 25px 60px rgba(0,0,0,0.5)"
                         }}
                     >
                         <Image
                             src={project.image}
                             alt={project.name}
-                            width={700}
-                            height={650}
+                            fill
                             style={{
-                                width: "100%",
-                                height: "100%",
                                 objectFit: "cover",
-                                objectPosition: "center center"
+                                objectPosition: "left center"
                             }}
                         />
                     </div>
+                    )}
                 </>
                 );
             })()}

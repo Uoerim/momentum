@@ -33,16 +33,94 @@ interface Blog {
 interface BlogContentProps {
     isLoading?: boolean;
     isActive?: boolean;
+    initialSlug?: string;
 }
 
-export default function BlogContent({ isLoading = false, isActive = false }: BlogContentProps) {
+export default function BlogContent({ isLoading = false, isActive = false, initialSlug }: BlogContentProps) {
     const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [showContent, setShowContent] = useState(false);
     const [showList, setShowList] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [mobileLoadedCount, setMobileLoadedCount] = useState(5);
+    const [scrollVisible, setScrollVisible] = useState<Set<string>>(new Set());
+    const [initialBlogOpened, setInitialBlogOpened] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+    const articleRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
     const blogs = blogsData.blogs as Blog[];
+    
+    // For mobile, limit displayed blogs with "load more" pattern
+    const displayedBlogs = isMobile ? blogs.slice(0, mobileLoadedCount) : blogs;
+    const hasMoreBlogs = isMobile && mobileLoadedCount < blogs.length;
+    
+    const loadMoreBlogs = () => {
+        setMobileLoadedCount(prev => Math.min(prev + 5, blogs.length));
+    };
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+
+    // Open blog from initialSlug prop or sessionStorage (for mobile redirect)
+    useEffect(() => {
+        if (initialBlogOpened || !isActive) return;
+        
+        const slugToOpen = initialSlug || (typeof window !== 'undefined' ? sessionStorage.getItem("openBlogSlug") : null);
+        
+        if (slugToOpen) {
+            const blog = blogs.find(b => b.slug === slugToOpen);
+            if (blog) {
+                setInitialBlogOpened(true);
+                // Clear from sessionStorage
+                if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem("openBlogSlug");
+                }
+                // Open blog directly
+                setSelectedBlog(blog);
+                setShowContent(true);
+                setIsTransitioning(true);
+            }
+        }
+    }, [initialSlug, blogs, initialBlogOpened, isActive]);
+
+    // Scroll animation observer for mobile - only for article list, not when reading
+    useEffect(() => {
+        if (!isMobile || selectedBlog) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    const id = entry.target.getAttribute("data-scroll-id");
+                    if (!id) return;
+                    
+                    setScrollVisible((prev) => {
+                        const newSet = new Set(prev);
+                        if (entry.isIntersecting) {
+                            newSet.add(id);
+                        } else {
+                            newSet.delete(id);
+                        }
+                        return newSet;
+                    });
+                });
+            },
+            { threshold: 0.15, rootMargin: "-30px" }
+        );
+
+        Object.values(articleRefs.current).forEach((el) => {
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [isMobile, displayedBlogs, selectedBlog]);
+
+    const isScrollVisible = (id: string) => scrollVisible.has(id);
 
     // Handle animation based on active state
     useEffect(() => {
@@ -74,6 +152,10 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
         setShowList(false);
         setTimeout(() => {
             setSelectedBlog(blog);
+            // Update URL to blog slug (desktop only)
+            if (!isMobile) {
+                window.history.pushState(null, "", `/blog/${blog.slug}`);
+            }
             setTimeout(() => {
                 setShowContent(true);
                 // Scroll to top when blog opens
@@ -86,6 +168,10 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
 
     const closeBlog = () => {
         setShowContent(false);
+        // Update URL back to /blog (desktop only)
+        if (!isMobile) {
+            window.history.pushState(null, "", "/blog");
+        }
         setTimeout(() => {
             setSelectedBlog(null);
             setIsTransitioning(false);
@@ -157,8 +243,8 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                     }
                     break;
                 case "image":
-                    // Handle side-by-side layouts - pair with next paragraph
-                    if (block.layout === "left" || block.layout === "right") {
+                    // Handle side-by-side layouts - pair with next paragraph (stack on mobile)
+                    if ((block.layout === "left" || block.layout === "right") && !isMobile) {
                         // Find the next paragraph to pair with
                         const nextBlock = content[index + 1];
                         const hasNextParagraph = nextBlock && nextBlock.type === "paragraph";
@@ -362,15 +448,21 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
             className={`page-content ${!isLoading ? "animate-blogs" : ""}`}
             style={{
                 width: "100%",
-                height: "100%",
+                height: isMobile ? "auto" : "100%",
+                minHeight: isMobile ? "100vh" : undefined,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "flex-start",
-                background: "var(--background)",
-                padding: "0 4rem",
+                background: isMobile ? "linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('/back.gif')" : "var(--background)",
+                backgroundColor: isMobile ? "#000" : "var(--background)",
+                backgroundSize: isMobile ? "150%" : undefined,
+                backgroundPosition: isMobile ? "center" : undefined,
+                backgroundRepeat: isMobile ? "no-repeat" : undefined,
+                padding: isMobile ? "0 1.5rem" : "0 4rem",
                 boxSizing: "border-box",
-                overflowY: "auto"
+                overflowY: "auto",
+                position: "relative"
             }}
         >
             {/* Blog List View */}
@@ -381,11 +473,11 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                     transition: "opacity 0.4s ease, transform 0.4s ease",
                     display: selectedBlog ? "none" : "flex",
                     flexDirection: "column",
-                    alignItems: "flex-start",
+                    alignItems: isMobile ? "center" : "flex-start",
                     width: "100%",
                     maxWidth: "600px",
-                    paddingTop: "12vh",
-                    paddingBottom: "4rem"
+                    paddingTop: isMobile ? "1.5rem" : "12vh",
+                    paddingBottom: isMobile ? "2rem" : "4rem"
                 }}
             >
                 {/* Header */}
@@ -395,25 +487,35 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                     color: "#4a4a4a",
                     letterSpacing: "0.25em",
                     textTransform: "uppercase",
-                    marginBottom: "2.5rem",
+                    marginBottom: isMobile ? "1rem" : "2.5rem",
                     fontFamily: "system-ui, -apple-system, sans-serif",
                     opacity: showList ? 1 : 0,
                     transform: showList ? "translateY(0)" : "translateY(10px)",
-                    transition: "opacity 0.4s ease, transform 0.4s ease"
+                    transition: "opacity 0.4s ease, transform 0.4s ease",
+                    textAlign: isMobile ? "center" : "left",
+                    width: "100%"
                 }}>
                     Articles
                 </p>
 
-                {blogs.map((blog, index) => (
+                {displayedBlogs.map((blog, index) => {
+                    const articleScrollId = `article-${blog.id}`;
+                    const articleIsVisible = isMobile ? isScrollVisible(articleScrollId) : showList;
+                    
+                    return (
                     <article
                         key={blog.id}
+                        ref={(el) => { articleRefs.current[articleScrollId] = el; }}
+                        data-scroll-id={articleScrollId}
                         onClick={() => openBlog(blog)}
                         style={{
                             cursor: "pointer",
-                            opacity: showList ? 1 : 0,
-                            transform: showList ? "translateY(0)" : "translateY(15px)",
-                            transition: `opacity 0.4s ease ${index * 60}ms, transform 0.4s ease ${index * 60}ms`,
-                            padding: "1.5rem 0",
+                            opacity: articleIsVisible ? 1 : 0,
+                            transform: articleIsVisible ? "translateY(0)" : "translateY(20px)",
+                            transition: isMobile 
+                                ? "opacity 0.5s ease-out, transform 0.5s ease-out"
+                                : `opacity 0.4s ease ${index * 60}ms, transform 0.4s ease ${index * 60}ms`,
+                            padding: isMobile ? "1rem 0" : "1.5rem 0",
                             borderBottom: "1px solid rgba(255,255,255,0.1)",
                             width: "100%"
                         }}
@@ -421,7 +523,7 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                             e.currentTarget.style.opacity = "0.7";
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.opacity = showList ? "1" : "0";
+                            e.currentTarget.style.opacity = articleIsVisible ? "1" : "0";
                         }}
                     >
                         {/* Title */}
@@ -449,72 +551,141 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                             {blog.excerpt}
                         </p>
 
-                        {/* Meta - Date */}
-                        <p style={{
-                            fontSize: "0.8rem",
-                            color: "#666",
-                            margin: 0,
-                            textAlign: "left"
+                        {/* Meta - Date and Arrow */}
+                        <div style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center"
                         }}>
-                            {formatDate(blog.date)}
-                        </p>
+                            <p style={{
+                                fontSize: "0.8rem",
+                                color: "#666",
+                                margin: 0,
+                                textAlign: "left"
+                            }}>
+                                {formatDate(blog.date)}
+                            </p>
+                            {isMobile && (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                            )}
+                        </div>
                     </article>
-                ))}
+                    );
+                })}
+
+                {/* Load More Button - Mobile only */}
+                {hasMoreBlogs && (
+                    <button
+                        onClick={loadMoreBlogs}
+                        style={{
+                            marginTop: "1.5rem",
+                            padding: "0.75rem 2rem",
+                            background: "transparent",
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            borderRadius: "8px",
+                            color: "#fff",
+                            fontSize: "0.85rem",
+                            fontWeight: 500,
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            letterSpacing: "0.05em",
+                            opacity: showList ? 1 : 0,
+                            transform: showList ? "translateY(0)" : "translateY(10px)"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                        }}
+                    >
+                        Load More Articles
+                    </button>
+                )}
             </div>
 
             {/* Blog Content View */}
             {selectedBlog && (
                 <div
                     style={{
+                        position: isMobile ? "fixed" : "relative",
+                        top: isMobile ? 0 : "auto",
+                        left: isMobile ? 0 : "auto",
+                        right: isMobile ? 0 : "auto",
+                        bottom: isMobile ? 0 : "auto",
+                        zIndex: isMobile ? 1000 : "auto",
                         opacity: showContent ? 1 : 0,
                         transform: showContent ? "translateY(0)" : "translateY(20px)",
                         transition: "opacity 0.3s ease, transform 0.3s ease",
                         display: "flex",
-                        width: "100%",
-                        maxWidth: "1000px",
-                        paddingTop: "8vh",
-                        paddingBottom: "4rem",
-                        gap: "3rem"
+                        flexDirection: "column",
+                        width: isMobile ? "100%" : "100%",
+                        maxWidth: isMobile ? "none" : "1000px",
+                        paddingTop: isMobile ? "0" : "8vh",
+                        paddingBottom: isMobile ? "0" : "4rem",
+                        gap: isMobile ? "0" : "3rem",
+                        background: isMobile ? "linear-gradient(rgba(0,0,0,0.88), rgba(0,0,0,0.88)), url('/back.gif')" : "transparent",
+                        backgroundSize: isMobile ? "cover" : undefined,
+                        backgroundPosition: isMobile ? "center" : undefined,
+                        backgroundRepeat: isMobile ? "no-repeat" : undefined,
+                        overflowY: isMobile ? "auto" : "visible"
                     }}
                 >
-                    {/* Back Button - Left Side */}
+                    {/* Mobile Article Content Container */}
                     <div style={{
-                        position: "sticky",
-                        top: "8vh",
-                        height: "fit-content",
-                        flexShrink: 0
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: isMobile ? "column" : "row",
+                        width: "100%",
+                        maxWidth: isMobile ? "none" : "1000px",
+                        padding: isMobile ? "2rem 1.5rem 5rem 1.5rem" : "0",
+                        gap: isMobile ? "1.5rem" : "3rem",
+                        overflowY: isMobile ? "auto" : "visible"
                     }}>
-                        <button
-                            onClick={closeBlog}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.5rem",
-                                background: "none",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                color: "#666",
-                                fontSize: "0.8rem",
-                                cursor: "pointer",
-                                padding: "0.6rem 1rem",
-                                borderRadius: "6px",
-                                transition: "all 0.2s",
-                                whiteSpace: "nowrap"
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.color = "#fff";
-                                e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.color = "#666";
-                                e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-                            }}
-                        >
-                            ← Back
-                        </button>
-                    </div>
+                        {/* Back Button - Desktop only (moved to floating for mobile) */}
+                        {!isMobile && (
+                        <div style={{
+                            position: "sticky",
+                            top: "8vh",
+                            height: "fit-content",
+                            flexShrink: 0
+                        }}>
+                            <button
+                                onClick={closeBlog}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    background: "none",
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                    color: "#666",
+                                    fontSize: "0.8rem",
+                                    cursor: "pointer",
+                                    padding: "0.6rem 1rem",
+                                    borderRadius: "6px",
+                                    transition: "all 0.2s",
+                                    whiteSpace: "nowrap"
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = "#fff";
+                                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = "#666";
+                                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                                }}
+                            >
+                                ← Back
+                            </button>
+                        </div>
+                        )}
 
-                    {/* Main Content */}
-                    <div style={{ flex: 1, maxWidth: "800px", width: "100%" }}>
+                        {/* Main Content */}
+                        <div style={{ flex: 1, maxWidth: "800px", width: "100%" }}>
                         {/* Tags */}
                         <div style={{
                             display: "flex",
@@ -539,7 +710,7 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
 
                         {/* Title */}
                         <h1 style={{
-                            fontSize: "2.5rem",
+                            fontSize: isMobile ? "1.75rem" : "2.5rem",
                             fontWeight: 600,
                             color: "#fff",
                             margin: "0 0 1.5rem 0",
@@ -554,10 +725,11 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                         <div style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: "1.5rem",
-                            fontSize: "0.85rem",
+                            flexWrap: "wrap",
+                            gap: isMobile ? "0.5rem 1rem" : "1.5rem",
+                            fontSize: isMobile ? "0.75rem" : "0.85rem",
                             color: "#666",
-                            marginBottom: "3rem",
+                            marginBottom: isMobile ? "2rem" : "3rem",
                             paddingBottom: "2rem",
                             borderBottom: "1px solid rgba(255,255,255,0.08)"
                         }}>
@@ -573,6 +745,40 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                             {renderContent(selectedBlog.content)}
                         </div>
                     </div>
+                    </div>
+
+                    {/* Floating Back Button - Mobile only */}
+                    {isMobile && (
+                        <button
+                            onClick={closeBlog}
+                            style={{
+                                position: "fixed",
+                                bottom: "1.5rem",
+                                left: "1.5rem",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "0.5rem",
+                                background: "rgba(0,0,0,0.8)",
+                                backdropFilter: "blur(10px)",
+                                WebkitBackdropFilter: "blur(10px)",
+                                border: "1px solid rgba(255,255,255,0.2)",
+                                color: "#fff",
+                                fontSize: "0.85rem",
+                                fontWeight: 500,
+                                cursor: "pointer",
+                                padding: "0.75rem 1.25rem",
+                                borderRadius: "50px",
+                                zIndex: 1001,
+                                boxShadow: "0 4px 20px rgba(0,0,0,0.4)"
+                            }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                            Back
+                        </button>
+                    )}
 
                     {/* Blog content styles */}
                     <style jsx global>{`
@@ -599,6 +805,21 @@ export default function BlogContent({ isLoading = false, isActive = false }: Blo
                         }
                         .blog-content p {
                             max-width: 100%;
+                        }
+                        .blog-content ul,
+                        .blog-content ol {
+                            margin: 1.25rem 0;
+                            padding-left: 1.5rem;
+                            color: #ccc;
+                        }
+                        .blog-content li {
+                            font-size: 1.1rem;
+                            line-height: 1.8;
+                            margin: 0.5rem 0;
+                            color: #ccc;
+                        }
+                        .blog-content li::marker {
+                            color: #dc143c;
                         }
                     `}</style>
                 </div>
