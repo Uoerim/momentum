@@ -11,8 +11,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Momentum",
-  description: "A modern portfolio experience",
+  title: "Momentum - Yosif Ibrahim",
+  description: "Where i show my Art",
 };
 
 export default function RootLayout({
